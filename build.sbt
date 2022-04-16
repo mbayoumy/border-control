@@ -14,8 +14,5 @@ libraryDependencies  ++= Seq(
   "org.http4s" %% "http4s-blaze-client" % http4sVersion,
   "org.http4s" %% "http4s-circe" % http4sVersion,
   "io.circe" %% "circe-literal" % "0.13.0",
-  "com.github.fd4s" %% "fs2-kafka" % "3.0.0-M4",
   "io.circe" %% "circe-generic" % "0.13.0",
-  "dev.profunktor" % "redis4cats-effects_2.13" % "1.0.0",
-  "com.github.fd4s" %% "fs2-kafka" % "3.0.0-M4"
 )

@@ -1,10 +1,13 @@
 package uk.border.control
 package domain.model
 
+import java.time.LocalDate
+
 case class Passport
 (
-  id: String,
-  name: String,
-  placeOfBirth: String
-
+  id: PassportId,
+  familyName: String,
+  givenName: String,
+  countryCode: CountryCode,
+  dateOfExpiry: LocalDate
 )
