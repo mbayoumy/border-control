@@ -1,7 +1,7 @@
 package uk.border.control
 package domain
 
-import domain.ServiceFailure.{ImageDoesNotMatch, PassportExpired}
+import domain.ServiceFailure.{ImageDoesNotMatch, InvalidPassportType, PassportExpired}
 import domain.algebra._
 import domain.model.CountryCode._
 import domain.model.Passport
@@ -14,11 +14,11 @@ import java.time.{LocalDate, LocalDateTime}
 
 class ElectronicPassportProgram[F[_]]
 (
- borderControlEvents: BorderControlEvents[F],
- euPassport: EUPassport[F],
- passportScanner: PassportScanner[F],
- ukPassportPersistence: UKPassportPersistence[F],
- personIdentifier: PersonIdentifier[F]
+  borderControlEvents: BorderControlEvents[F],
+  euPassport: EuPassport[F],
+  passportScanner: PassportScanner[F],
+  ukPassportPersistence: PassportPersistence[F],
+  personIdentifier: PersonIdentifier[F]
 )(implicit M: Sync[F]) {
 
   def enteringTheUk(scannedPassport: Array[Byte], personImage: Array[Byte]): F[Unit] = {
@@ -32,9 +32,9 @@ class ElectronicPassportProgram[F[_]]
     } yield ()
   }
 
-   def validatePassport(passport: Passport): F[Boolean] = {
+   private def validatePassport(passport: Passport): F[Boolean] = {
     passport.countryCode match {
-      case EGY => M.raiseError
+      case EGY => M.raiseError(InvalidPassportType)
       case GBR => ukPassportPersistence.checkPassportExist(passport.id)
       case ESP | FRA => euPassport.checkPassportExist(passport.countryCode, passport.id)
     }

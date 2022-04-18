@@ -3,7 +3,7 @@ package domain.algebra
 
 import domain.model.PassportId
 
-trait UKPassportPersistence[F[_]] {
+trait PassportPersistence[F[_]] {
 
   def checkPassportExist(pid:PassportId): F[Boolean]
 
