@@ -6,5 +6,6 @@ sealed trait ServiceFailure extends Throwable
 object ServiceFailure {
   case object PassportExpired extends ServiceFailure
   case object ImageDoesNotMatch extends ServiceFailure
-  case object InvalidPassportType extends ServiceFailure
+  case object InvalidPassport extends ServiceFailure
+  case object RandomSearch extends ServiceFailure
 }

@@ -3,9 +3,10 @@ package application
 
 import application.google.CloudVisionApi
 import application.kafka.DummyBorderControlEvents
-import application.postgres.UkPassportPersistence
-import application.service.{EuPassportService, SuperSophisticatedImageScanner}
+import application.postgres.UkPassportRepository
+import application.service.EuPassportService
 import domain.ElectronicPassportProgram
+import domain.ServiceFailure.{ImageDoesNotMatch, InvalidPassport, PassportExpired, RandomSearch}
 
 import cats.effect.{ExitCode, IO, IOApp}
 import org.http4s.HttpRoutes
@@ -20,14 +21,16 @@ object Main extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
 
-    val imageScanner = new SuperSophisticatedImageScanner()
     val euPassportService = new EuPassportService()
-    val ukPassportPersistence = new UkPassportPersistence()
+    val ukPassportRepository = new UkPassportRepository()
     val dummyBorderControlEvents = new DummyBorderControlEvents()
     val cloudVisionApi = new CloudVisionApi()
 
     val electronicPassportProgram = new ElectronicPassportProgram[IO](
-      dummyBorderControlEvents, euPassportService, imageScanner, ukPassportPersistence, cloudVisionApi
+      dummyBorderControlEvents,
+      euPassportService,
+      cloudVisionApi,
+      ukPassportRepository
     )
 
     val resources = for {
@@ -42,6 +45,13 @@ object Main extends IOApp {
   def router(electronicPassportProgram: ElectronicPassportProgram[IO]) = HttpRoutes.of[IO] {
     case POST -> Root / "uk-passport-checker" =>
       Logger[IO].info("calling the service") *>
-        electronicPassportProgram.enteringTheUk(Array.emptyByteArray, Array.emptyByteArray).flatMap(Ok(_))
+        electronicPassportProgram
+          .enteringTheUk(Array.emptyByteArray, Array.emptyByteArray)
+          .flatMap(Ok(_)).handleErrorWith {
+          case InvalidPassport => Forbidden("passport is invalid")
+          case PassportExpired => Forbidden("passport has expired")
+          case ImageDoesNotMatch => InternalServerError("passport picture does not match the photo taken")
+          case RandomSearch => NotAcceptable("Looks dodgy, do a random search")
+        }
   }.orNotFound
 }

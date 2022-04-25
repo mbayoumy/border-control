@@ -1,7 +1,7 @@
 package uk.border.control
 package domain
 
-import domain.ServiceFailure.{ImageDoesNotMatch, InvalidPassportType, PassportExpired}
+import domain.ServiceFailure.{ImageDoesNotMatch, InvalidPassport, PassportExpired, RandomSearch}
 import domain.algebra._
 import domain.model.CountryCode._
 import domain.model.Passport
@@ -16,28 +16,31 @@ class ElectronicPassportProgram[F[_]]
 (
   borderControlEvents: BorderControlEvents[F],
   euPassport: EuPassport[F],
-  passportScanner: PassportScanner[F],
-  ukPassportPersistence: PassportPersistence[F],
-  personIdentifier: PersonIdentifier[F]
+  imageScanner: ImageScanner[F],
+  ukPassportPersistence: PassportRepository[F]
 )(implicit M: Sync[F]) {
 
   def enteringTheUk(scannedPassport: Array[Byte], personImage: Array[Byte]): F[Unit] = {
     for {
-      passport <- passportScanner.getPassportFromScannedImage(scannedPassport)
+      passport <- imageScanner.getPassportFromScannedImage(scannedPassport)
       _ <- validatePassport(passport)
       _ <- checkPassportExpiry(passport)
       passportPicture <- ukPassportPersistence.getPictureInPassport(passport.id)
-      _ <- personIdentifier.samePersonInBothPictures(passportPicture, personImage)
+      _ <- imageScanner.samePersonInBothPictures(passportPicture, personImage)
       _ <- borderControlEvents.publishBorderControlEvent(LocalDateTime.now(), passport)
     } yield ()
   }
 
-   private def validatePassport(passport: Passport): F[Boolean] = {
-    passport.countryCode match {
-      case EGY => M.raiseError(InvalidPassportType)
+   private def validatePassport(passport: Passport): F[Unit] = {
+    val r: F[_ <: Boolean] = passport.countryCode match {
+      case EGY => M.raiseError(RandomSearch)
       case GBR => ukPassportPersistence.checkPassportExist(passport.id)
       case ESP | FRA => euPassport.checkPassportExist(passport.countryCode, passport.id)
     }
+     r.flatMap {
+       case true => M.unit
+       case false => M.raiseError(InvalidPassport)
+     }
   }
 
   private def checkPassportExpiry(passport: Passport): F[Unit] = {

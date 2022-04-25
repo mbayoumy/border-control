@@ -1,12 +1,12 @@
 package uk.border.control
 package application.postgres
 
-import domain.algebra.PassportPersistence
+import domain.algebra.PassportRepository
 import domain.model
 
 import cats.effect.IO
 
-class UkPassportPersistence extends PassportPersistence[IO]{
+class UkPassportRepository extends PassportRepository[IO]{
 
   override def checkPassportExist(pid: model.PassportId): IO[Boolean] = IO.pure(true)
 
